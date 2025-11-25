@@ -12,26 +12,30 @@
     "docker:run": "docker run -d -p 3000:3000 -v blade_data:/usr/src/app/.blade/state -e BLADE_AUTH_SECRET=${BLADE_AUTH_SECRET} -e BLADE_PUBLIC_URL=${BLADE_PUBLIC_URL:-http://localhost:3000} qodin",
     "docker:dev": "docker-compose up -d",
     "docker:stop": "docker-compose down",
-    "deploy:cloudflare": "bun x wrangler deploy",
+    
+    "deploy:cloudflare": "node_modules/.bin/wrangler deploy",
     "deploy:railway": "railway up",
     "deploy:fly": "flyctl deploy",
-    "deploy:cloudflare:prod": "bun x wrangler deploy --env production",
+    "deploy:cloudflare:prod": "node_modules/.bin/wrangler deploy --env production",
+    
     "setup:railway": "echo 'Install Railway CLI: npm install -g @railway/cli' && echo 'Then run: railway login'",
-    "setup:cloudflare": "bun x wrangler login",
+    "setup:cloudflare": "node_modules/.bin/wrangler login",
     "setup:fly": "echo 'Install flyctl from: https://fly.io/docs/hands-on/install-flyctl/' && echo 'Then run: flyctl auth login'",
     "setup:check": "./scripts/check-deployment-setup.sh",
     "setup:fix": "./scripts/fix-deployment-issues.sh",
+    
     "migrate": "blade diff --apply",
     "migrate:check": "blade diff",
+    
     "db:status": "blade status",
-    "db:backup": "cp -r .blade/state backup-$(date +%Y%m%d-%H%M%S)",
-    "db:backup:script": "./scripts/backup-db.sh",
-    "db:backup:s3": "./scripts/backup-to-s3.sh",
-    "db:restore": "./scripts/restore-db.sh",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:backup:s3": "bash scripts/backup-to-s3.sh",
+    "db:restore": "bash scripts/restore-db.sh",
     "db:sync:upload": "node scripts/sync-remote-storage.js upload",
     "db:sync:download": "node scripts/sync-remote-storage.js download",
     "db:sync:status": "node scripts/sync-remote-storage.js status",
-    "storage:status": "bun test-storage.js"
+    
+    "storage:status": "node scripts/check-storage-status.js"
   },
   "author": "ronin",
   "dependencies": {
