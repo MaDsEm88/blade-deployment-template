@@ -1,203 +1,183 @@
 # Deployment Guide
 
-Complete guide for deploying your Blade application with embedded Hive database to Railway, Cloudflare Workers, and Fly.io.
+Deploy your Blade application with embedded Hive database to Railway, Cloudflare Workers, or Fly.io.
 
 ## Quick Start
 
-### 1. Check Setup
 ```bash
+# 1. Check setup
 bun run setup:check
-```
-This verifies CLI tools are installed and authenticated.
 
-### 2. Fix Issues (if needed)
-```bash
+# 2. Fix any issues
 bun run setup:fix
-```
-Interactive wizard to install and authenticate CLI tools.
 
-### 3. Deploy
-```bash
-# Choose your platform:
-bun run deploy:railway      # Railway.app
-bun run deploy:cloudflare   # Cloudflare Workers
-flyctl deploy              # Fly.io
+# 3. Deploy
+bun run deploy:railway      # or deploy:cloudflare
+flyctl deploy              # for Fly.io
 ```
 
 ---
 
-## Platform Setup & Authentication
+## Railway (Easiest)
 
-### Railway.app
+### Setup
+```bash
+npm install -g @railway/cli
+railway login
+railway init
+```
 
-#### First-time Setup
-1. **Create account** at https://railway.app
-2. **Install CLI globally**:
-   ```bash
-   npm install -g @railway/cli
-   ```
-3. **Authenticate**:
-   ```bash
-   railway login
-   ```
-4. **Initialize project**:
-   ```bash
-   railway init
-   railway link
-   ```
-
-#### Deploy
+### Deploy
 ```bash
 bun run deploy:railway
 ```
 
-#### Set Environment Variables
+### Environment Variables
 ```bash
 railway variables set BLADE_AUTH_SECRET=$(openssl rand -base64 30)
 railway variables set BLADE_PUBLIC_URL=https://your-app.railway.app
 railway variables set RESEND_API_KEY=your-resend-key
 ```
 
-#### Configuration
-- **File**: `railway.json`
-- **Builder**: NIXPACKS (automatic)
-- **Persistent Volume**: `.blade/state` (configured in railway.json)
-- **Health Checks**: Enabled on `/`
-- **Auto-restart**: On failure
+**Storage**: Automatic persistent volume at `.blade/state`
 
 **Troubleshooting**:
-- "Unauthorized" → Run `railway login`
-- "Command not found" → Install CLI globally: `npm install -g @railway/cli`
+- "Unauthorized" → `railway login`
+- Check logs → `railway logs`
 
 ---
 
-### Cloudflare Workers
+## Cloudflare Workers (Global Edge)
 
-#### First-time Setup
-1. **Create account** at https://cloudflare.com
+### ⚠️ Required: AWS S3 Setup
 
+Cloudflare Workers need S3 storage. See [DATABASE.md](./DATABASE.md) for detailed S3 setup.
+
+**Quick S3 Setup**:
+1. Create S3 bucket in AWS Console
+2. Create IAM user with S3 permissions
+3. Generate access keys
+
+### Setup
+
+1. **Authenticate**:
+   ```bash
+   node_modules/.bin/wrangler login
    ```
 
-#### Deploy
-2.
+2. **Configure `wrangler.jsonc`**:
+   ```jsonc
+   {
+     "name": "your-app",
+     "main": ".blade/dist/edge-worker.js",
+     "vars": {
+       "HIVE_STORAGE_TYPE": "s3",
+       "HIVE_S3_BUCKET": "your-bucket-name",
+       "AWS_REGION": "us-east-1"
+     }
+   }
+   ```
+
+3. **Set Secrets**:
+   ```bash
+   node_modules/.bin/wrangler secret put AWS_ACCESS_KEY_ID
+   node_modules/.bin/wrangler secret put AWS_SECRET_ACCESS_KEY
+   node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET
+   node_modules/.bin/wrangler secret put BLADE_PUBLIC_URL
+   ```
+
+### Deploy
 ```bash
 bun run deploy:cloudflare
+```
 
-```
-```
-#### C
-Configuration
-- **File**: `wrangler.jsonc`
-- **Runtime**: Edge workers
-- **Assets**: Served from binding
-- **Build**: `npm run build` (configured)
+**Storage**: AWS S3 (no local disk available)
 
 **Troubleshooting**:
-- "Could not route to /accounts/..." → Run `bun x wrangler login`
-- Account ID issues → Authentication handles this automatically
+- ⚠️ Always use `node_modules/.bin/wrangler` (not `bun x wrangler`)
+- Check logs → `node_modules/.bin/wrangler tail`
+- "TypeError: undefined is not a function" → Wrong wrangler path
 
 ---
 
-### Fly.io
+## Fly.io (Docker & Multi-region)
 
-#### First-time Setup
-1. **Create account** at https://fly.io
-2. **Install flyctl**:
-   
-   **Linux/WSL**:
+### Setup
+
+1. **Install flyctl**:
    ```bash
-   curl -L https://fly.io/install.sh | sh
-   ```
-   
-   **macOS**:
-   ```bash
+   # macOS
    brew install flyctl
-   ```
    
-   **Windows**:
-   ```powershell
+   # Linux
+   curl -L https://fly.io/install.sh | sh
+   
+   # Windows
    iwr https://fly.io/install.ps1 -useb | iex
    ```
 
-3. **Authenticate**:
+2. **Authenticate**:
    ```bash
    flyctl auth login
    ```
 
-4. **Create volume** (one-time):
+3. **Create Volume** (required):
    ```bash
    flyctl volumes create blade_data --size 1
    ```
 
-5. **Set secrets**:
+4. **Set Secrets**:
    ```bash
    flyctl secrets set BLADE_AUTH_SECRET=$(openssl rand -base64 30)
    flyctl secrets set BLADE_PUBLIC_URL=https://your-app.fly.dev
    flyctl secrets set RESEND_API_KEY=your-resend-key
    ```
 
-#### Deploy
+### Deploy
 ```bash
 flyctl deploy
 ```
 
-#### Configuration
-- **File**: `fly.toml`
-- **Runtime**: Docker (Dockerfile)
-- **Persistent Volume**: `.blade/state` (mounted)
-- **Health Checks**: HTTP checks on `/`
+**Storage**: Volume at `.blade/state` (must create first)
 
 **Troubleshooting**:
-- "Command failed" with `bun x fly` → Don't use npm package, install proper flyctl
-- Volume issues → Create volume first: `flyctl volumes create blade_data --size 1`
+- "Volume not found" → `flyctl volumes create blade_data --size 1`
+- Check status → `flyctl status`
+- View logs → `flyctl logs`
 
 ---
 
-## Database & Storage
+## Storage Configuration by Platform
 
-### Embedded Hive Database
+| Platform | Required Storage | Setup Difficulty |
+|----------|-----------------|------------------|
+| Railway | Disk (automatic) | Easy |
+| Cloudflare | S3 (manual) | Medium |
+| Fly.io | Disk (manual volume) | Medium |
 
-Your application uses an embedded Hive database stored in `.blade/state/`.
+### Configuration Examples
 
-**Default Configuration**:
-- Storage Type: `disk`
-- Path: `.blade/state`
-- Automatic initialization
-- Persistent volumes on Railway/Fly.io
-
-**Environment Variables**:
+**Disk (Railway, Fly.io)**:
 ```bash
-HIVE_STORAGE_TYPE=disk          # disk, s3, remote, replication
-HIVE_DISK_PATH=.blade/state     # Storage path
-HIVE_ENCRYPTION_KEY=optional    # For encryption
+HIVE_STORAGE_TYPE=disk
+HIVE_DISK_PATH=.blade/state
 ```
 
-**Storage Types**:
-- `disk` - Local file system (default)
-- `s3` - AWS S3 storage
-- `remote` - Remote API storage
-- `replication` - Multiple backends
-
-See [DATABASE.md](./DATABASE.md) for detailed database configuration.
-
----
-
-## Docker Deployment
-
-### Build & Run
+**S3 (Cloudflare, or optional for others)**:
 ```bash
-bun run docker:build
-bun run docker:run
+HIVE_STORAGE_TYPE=s3
+HIVE_S3_BUCKET=your-bucket-name
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
 ```
 
-### Manual Docker
+**Replication (Production - Disk + S3)**:
 ```bash
-docker build -t qodin .
-docker run -d -p 3000:3000 \
-  -v blade_data:/usr/src/app/.blade/state \
-  -e BLADE_AUTH_SECRET=$BLADE_AUTH_SECRET \
-  -e BLADE_PUBLIC_URL=$BLADE_PUBLIC_URL \
-  qodin
+HIVE_STORAGE_TYPE=replication
+HIVE_REPLICATION_MODE=async
+HIVE_DISK_PATH=.blade/state
+# Plus all S3 variables above
 ```
 
 ---
@@ -206,57 +186,50 @@ docker run -d -p 3000:3000 \
 
 ### Required for All Platforms
 ```bash
-BLADE_AUTH_SECRET=xxx        # Session encryption (use openssl rand -base64 30)
-BLADE_PUBLIC_URL=xxx         # Your app's public URL
-```
-
-### Email Service
-```bash
+BLADE_AUTH_SECRET=xxx        # Generate: openssl rand -base64 30
+BLADE_PUBLIC_URL=xxx         # Your deployed URL
 RESEND_API_KEY=xxx           # For email verification
 ```
 
-### Database Configuration
+### Storage Configuration
 ```bash
-NODE_ENV=production          # Production mode
-BLADE_PLATFORM=container     # For Railway/Fly.io
-HIVE_STORAGE_TYPE=disk       # Storage type
-HIVE_DISK_PATH=.blade/state  # Database path
+NODE_ENV=production
+BLADE_PLATFORM=container
+HIVE_STORAGE_TYPE=disk       # disk, s3, or replication
+HIVE_DISK_PATH=.blade/state  # For disk storage
+```
+
+### AWS S3 (Cloudflare or Replication)
+```bash
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=xxx
+AWS_REGION=us-east-1
+HIVE_S3_BUCKET=xxx
+```
+
+### Optional
+```bash
+HIVE_ENCRYPTION_KEY=xxx      # Generate: openssl rand -base64 32
 ```
 
 ---
 
-## Available Commands
+## Docker Deployment
 
-### Setup
+### Using Docker Compose
 ```bash
-bun run setup:check          # Check deployment setup
-bun run setup:fix            # Interactive setup wizard
-bun run setup:railway        # Railway-specific setup
-bun run setup:cloudflare     # Cloudflare authentication
-bun run setup:fly            # Fly.io setup instructions
+bun run docker:build
+bun run docker:dev
 ```
 
-### Deployment
+### Manual Docker
 ```bash
-bun run deploy:railway       # Deploy to Railway.app
-bun run deploy:cloudflare    # Deploy to Cloudflare Workers
-flyctl deploy               # Deploy to Fly.io
-```
-
-### Database
-```bash
-bun run db:backup            # Quick backup
-bun run db:backup:script     # Full backup script
-bun run db:restore           # Restore from backup
-blade diff                   # Check schema changes
-blade apply                  # Apply migrations
-```
-
-### Docker
-```bash
-bun run docker:build         # Build Docker image
-bun run docker:dev           # Run with Docker Compose
-bun run docker:run           # Run production container
+docker build -t myapp .
+docker run -d -p 3000:3000 \
+  -v blade_data:/usr/src/app/.blade/state \
+  -e BLADE_AUTH_SECRET=$BLADE_AUTH_SECRET \
+  -e BLADE_PUBLIC_URL=$BLADE_PUBLIC_URL \
+  myapp
 ```
 
 ---
@@ -265,129 +238,118 @@ bun run docker:run           # Run production container
 
 | Feature | Railway | Cloudflare | Fly.io |
 |---------|---------|------------|--------|
-| Setup Difficulty | Easy | Easy | Medium |
-| Persistent Storage | ✅ Volume | ⚠️ Limited | ✅ Volume |
-| Global CDN | ⚠️ Regional | ✅ Edge | ✅ Multi-region |
-| Auto-scaling | ✅ | ✅ | ✅ |
-| Health Checks | ✅ | ✅ | ✅ |
-| Free Tier | ✅ | ✅ | ✅ |
-| Best For | Full apps | Static/API | Docker apps |
+| Setup | ⭐⭐⭐ Easy | ⭐⭐ Medium | ⭐⭐ Medium |
+| Storage | Auto volume | S3 required | Manual volume |
+| Global | Regional | 150+ locations | Multi-region |
+| Scale to Zero | ❌ | ✅ | ✅ |
+| Free Tier | $5 credit/mo | 100k req/day | 3 VMs |
+| Best For | Quick deploy | Low latency | Docker apps |
+
+---
+
+## Common Commands
+
+```bash
+# Setup & Health
+bun run setup:check          # Verify configuration
+bun run setup:fix            # Fix issues
+bun run storage:status       # Check storage health
+
+# Deployment
+bun run deploy:railway       # Railway
+bun run deploy:cloudflare    # Cloudflare
+flyctl deploy               # Fly.io
+
+# Database
+bun run db:backup            # Local backup
+bun run db:backup:s3         # S3 backup
+bun run db:restore           # Restore backup
+bun run migrate              # Apply migrations
+```
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
-**"Unauthorized" or "Please login"**
+### Authentication Issues
 ```bash
-# Run setup check
-bun run setup:check
-
-# Or use interactive fixer
-bun run setup:fix
+# Re-authenticate
+railway login
+node_modules/.bin/wrangler login
+flyctl auth login
 ```
 
-**Build Failures**
+### Build Failures
 ```bash
-# Ensure dependencies installed
-bun install
-
-# Test build locally
-bun run build
+bun install        # Install dependencies
+bun run build      # Test build locally
 ```
 
-**Database/Storage Issues**
+### Storage Issues
 ```bash
-# Ensure directory exists
-mkdir -p .blade/state
-
-# Check storage status
-bun run storage:status
+mkdir -p .blade/state           # Create directory
+bun run storage:status          # Check configuration
 ```
 
-**Environment Variables Missing**
-- Generate auth secret: `openssl rand -base64 30`
-- Set all required variables for your platform
-- Check `.env.example` for reference
-
-### Platform-Specific Issues
+### Platform-Specific
 
 **Railway**:
 - Install CLI globally: `npm install -g @railway/cli`
-- Link to project: `railway link`
-- Check logs: `railway logs`
+- Link project: `railway link`
 
 **Cloudflare**:
-- Re-authenticate: `bun x wrangler login`
-- Check worker logs: `bun x wrangler tail`
-- Verify build output: Check `.blade/dist/edge-worker.js`
+- Use `node_modules/.bin/wrangler` (not `bun x wrangler`)
+- Ensure S3 is configured
+- Check: `.blade/dist/edge-worker.js` exists after build
 
 **Fly.io**:
-- Use proper flyctl (not npm package)
-- Create volume before deploy
-- Check app status: `flyctl status`
+- Create volume first: `flyctl volumes create blade_data --size 1`
+- Volume must be in same region as app
 
 ---
 
-## Security Best Practices
+## Security Checklist
 
-1. **Always set strong secrets**:
-   ```bash
-   openssl rand -base64 30  # Generate secure random string
-   ```
-
-2. **Never commit secrets**: Use `.gitignore` and platform secret management
-
-3. **Use HTTPS**: All platforms enforce HTTPS automatically
-
-4. **Enable encryption**: Set `HIVE_ENCRYPTION_KEY` for sensitive data
-
-5. **Restrict access**: Use environment-specific credentials
-
-6. **Monitor logs**: Check for security issues regularly
+- [ ] Generate strong auth secret: `openssl rand -base64 30`
+- [ ] Never commit `.env` files
+- [ ] Use platform secret management
+- [ ] Enable HTTPS (automatic on all platforms)
+- [ ] Set `HIVE_ENCRYPTION_KEY` for production
+- [ ] Use least-privilege IAM for S3
+- [ ] Regular backups configured
 
 ---
 
-## Performance Tips
+## Production Checklist
 
-1. **Use edge deployment**: Cloudflare Workers for lowest latency
-2. **Enable caching**: Platform-specific caching features
-3. **Optimize assets**: Use Blade's built-in optimization
-4. **Monitor resources**: Set appropriate memory/CPU limits
-
----
-
-## Support & Resources
-
-### Platform Documentation
-- Railway: https://docs.railway.app
-- Cloudflare Workers: https://developers.cloudflare.com/workers
-- Fly.io: https://fly.io/docs
-
-### Project Documentation
-- [README.md](./README.md) - Project overview
-- [DATABASE.md](./DATABASE.md) - Database configuration
-- `.env.example` - Environment variable reference
-
-### Quick Help
-```bash
-bun run setup:check    # Check configuration
-bun run setup:fix      # Fix issues interactively
-```
+- [ ] Environment variables set
+- [ ] Storage configured (volume or S3)
+- [ ] Backups automated
+- [ ] Health checks enabled
+- [ ] Monitoring configured
+- [ ] Domain configured (optional)
+- [ ] Test restore procedure
 
 ---
 
 ## Next Steps
 
-After successful deployment:
+1. ✅ Choose platform (Railway for easy, Cloudflare for global, Fly.io for Docker)
+2. ✅ Configure storage (disk or S3)
+3. ✅ Set environment variables
+4. ✅ Deploy
+5. ✅ Test application
+6. ✅ Set up backups
+7. ✅ Configure monitoring
 
-1. ✅ Test your application at the deployed URL
-2. ✅ Set up custom domain (optional)
-3. ✅ Configure monitoring and alerts
-4. ✅ Set up database backups (see DATABASE.md)
-5. ✅ Review security settings
-6. ✅ Test all features in production
-7. ✅ Monitor logs and performance
+**Need Help?** 
+- Run `bun run setup:check`
+- See [DATABASE.md](./DATABASE.md) for S3 setup
+- Check platform logs for errors
 
-**Need help?** Run `bun run setup:check` to diagnose issues.
+---
+
+**Platform Documentation**:
+- [Railway](https://docs.railway.app)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers)
+- [Fly.io](https://fly.io/docs)
