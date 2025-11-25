@@ -1,266 +1,328 @@
 # Database Guide
 
-This guide covers the embedded Hive database for your Blade application.
+Complete guide for the embedded Hive database in your Blade application.
 
 ## Overview
 
-Your application uses two database systems:
+Your application uses an **embedded Hive database** built into the Blade framework:
+- Stores data using SQLite in `.blade/state/` directory
+- Supports multiple storage backends (disk, S3, replication)
+- No external database server required
+- Automatic migrations and backups
 
-1. **Embedded Hive Database** - Primary storage for application data
+---
 
-## Embedded Hive Database
+## Storage Types & When to Use Them
 
-### Architecture
+| Type | Best For | Speed | Durability | Setup |
+|------|----------|-------|------------|-------|
+| **disk** | Railway/Fly.io single-region | ⚡ <1ms | ✅ Good | Easy |
+| **s3** | Cloudflare Workers (required) | 🐌 100-300ms | 💪 Excellent | Medium |
+| **replication** | Production apps | ⚡ <1ms | 💪 Excellent | Medium |
 
-Hive is embedded directly into the Blade framework and stores data in the `.blade/state/` directory using SQLite.
+**Quick Decision**:
+- Railway/Fly.io? → Use `disk` (default)
+- Cloudflare Workers? → Must use `s3`
+- Production app? → Use `replication` (disk + S3)
 
-### Storage Configuration
+---
 
-The database supports multiple storage backends configured via environment variables:
+## Configuration
 
-#### Disk Storage (Default)
+### Disk Storage (Default)
 ```bash
 HIVE_STORAGE_TYPE=disk
 HIVE_DISK_PATH=.blade/state
 ```
 
-#### S3 Storage
+**Platform Setup**:
+- Railway: Automatic (volume created)
+- Fly.io: Manual - `flyctl volumes create blade_data --size 1`
+- Docker: Configured in docker-compose.yml
+
+### S3 Storage (Required for Cloudflare)
+
+#### Quick Setup
 ```bash
 HIVE_STORAGE_TYPE=s3
-HIVE_S3_BUCKET=my-database-bucket
-AWS_ACCESS_KEY_ID=your-key
-AWS_SECRET_ACCESS_KEY=your-secret
+HIVE_S3_BUCKET=your-bucket-name
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=us-east-1
 ```
 
-#### Remote API Storage
-```bash
-HIVE_STORAGE_TYPE=remote
-REMOTE_STORAGE_ENDPOINT=https://api.example.com/storage
-REMOTE_STORAGE_API_KEY=your-key
+#### AWS S3 Setup Steps
+
+**1. Create S3 Bucket**
+- Go to AWS Console → S3 → Create bucket
+- Name: `your-app-database` (globally unique)
+- Region: `us-east-1` (or closest to users)
+- Block all public access: ✅ Enabled
+
+**2. Create IAM Policy**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
+    "Resource": [
+      "arn:aws:s3:::your-app-database",
+      "arn:aws:s3:::your-app-database/*"
+    ]
+  }]
+}
 ```
 
-#### Replication Storage (Hybrid)
+**3. Create IAM User**
+- Attach the policy above
+- Generate access key → Save Access Key ID & Secret
+
+**4. Set Secrets by Platform**
+
+Railway:
+```bash
+railway variables set HIVE_STORAGE_TYPE=s3
+railway variables set HIVE_S3_BUCKET=your-app-database
+railway variables set AWS_ACCESS_KEY_ID=AKIA...
+railway variables set AWS_SECRET_ACCESS_KEY=...
+railway variables set AWS_REGION=us-east-1
+```
+
+Fly.io:
+```bash
+flyctl secrets set HIVE_STORAGE_TYPE=s3 HIVE_S3_BUCKET=your-app-database
+flyctl secrets set AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=...
+flyctl secrets set AWS_REGION=us-east-1
+```
+
+Cloudflare (add to wrangler.jsonc vars, then):
+```bash
+node_modules/.bin/wrangler secret put AWS_ACCESS_KEY_ID
+node_modules/.bin/wrangler secret put AWS_SECRET_ACCESS_KEY
+```
+
+**Cost**: ~$0.03-0.05/month for 1GB + 10k requests
+
+### Replication Storage (Production)
+
+Combines disk (fast) + S3 (durable):
+
 ```bash
 HIVE_STORAGE_TYPE=replication
-HIVE_REPLICATION_MODE=async      # sync or async
-HIVE_CONFLICT_RESOLUTION=latest   # latest, primary, replica
+HIVE_REPLICATION_MODE=async              # async or sync
+HIVE_CONFLICT_RESOLUTION=latest          # latest, primary, or replica
+HIVE_DISK_PATH=.blade/state
+# Plus all S3 variables above
 ```
 
-### Database Operations
+**Modes**:
+- `async`: Fast, writes to disk first (recommended)
+- `sync`: Slower, waits for both disk and S3
 
-#### Status Check
+---
+
+## Common Operations
+
+### Check Status
 ```bash
-bun run storage:status
+bun run storage:status  # Storage health
+bun run db:status       # Database status
 ```
 
-#### Backup
+### Backups
 ```bash
-# Quick backup
-bun run db:backup
+bun run db:backup       # Quick local backup
+bun run db:backup:s3    # Backup to S3
 
-# Full backup with script
-bun run db:backup:script
-
-# Backup to S3
-bun run db:backup:s3
+# Manual backup
+tar -czf backup-$(date +%Y%m%d).tar.gz .blade/state
 ```
 
-#### Restore
+### Restore
 ```bash
-bun run db:restore
+bun run db:restore      # Interactive restore
+
+# Manual restore (stop app first)
+rm -rf .blade/state
+tar -xzf backup-20240101.tar.gz
 ```
 
-#### Migration
+### Migrations
 ```bash
-bun run migrate          # Apply migrations
-bun run migrate:check    # Check pending migrations
+blade diff              # Check schema changes
+blade apply             # Apply migrations
 ```
 
-### Database Schema
-
-The schema is defined in `schema/index.ts` with Blade schema definitions:
-
-```typescript
-// Account model
-export const Account = schema.table({
-  id: schema.string(),
-  email: schema.string(),
-  password: schema.string(),
-  handle: schema.string(),
-  emailVerified: schema.boolean(),
-  // ... other fields
-});
-
-// Session model
-export const Session = schema.table({
-  id: schema.string(),
-  account: schema.string(),
-  browser: schema.string(),
-  // ... other fields
-});
-```
-
-### Database Features
-
-- **Embedded**: No external database required
-- **SQLite**: Reliable, file-based storage
-- **Migrations**: Automatic schema migrations
-- **Backups**: Built-in backup and restore
-- **Multi-storage**: Disk, S3, Remote, Replication
-- **Encryption**: Optional data encryption
-
-
-
-#### Upload to Remote Storage
+### S3 Sync (Replication)
 ```bash
-bun run db:sync:upload
+bun run db:sync:status   # Check sync status
+bun run db:sync:upload   # Force upload to S3
 ```
 
-#### Download from Remote Storage
-```bash
-bun run db:sync:download
-```
-
-#### Sync Status
-```bash
-bun run db:sync:status
-```
-
-## Backup and Recovery
-
-### Automated Backups
-
-#### Local Backup Script
-```bash
-#!/bin/bash
-# Creates timestamped backup in backups/ directory
-./scripts/backup-db.sh
-```
-
-#### S3 Backup Script
-```bash
-#!/bin/bash
-# Uploads backup to S3
-./scripts/backup-to-s3.sh
-```
-
-### Manual Backup
-
-```bash
-# Create backup
-cp -r .blade/state backup-$(date +%Y%m%d-%H%M%S)
-
-# Using storage configuration
-node -e "
-import { getHiveStorageConfig } from './lib/hive-storage-config.js';
-const config = await getHiveStorageConfig();
-await config.createBackup('manual-backup');
-"
-```
-
-### Recovery
-
-#### From Local Backup
-```bash
-# Stop application
-# Restore data
-cp -r backup-20240101-120000/.blade/state .blade/
-# Start application
-```
-
-#### From Script
-```bash
-./scripts/restore-db.sh backup-file.tar.gz
-```
-
-## Performance Optimization
-
-### Hive Database
-
-1. **Storage Type**: Use appropriate storage for workload
-   - Disk: Best performance, local only
-   - S3: Durable, slower, multi-region
-   - Replication: Best of both worlds
-
-2. **Indexing**: Add indexes for frequent queries
-3. **Connection Pooling**: Managed automatically
-4. **Caching**: Built-in caching layer
-
+---
 
 ## Security
 
-### Hive Database
-
-1. **Encryption**: Enable with `HIVE_ENCRYPTION_KEY`
-2. **Access Control**: File system permissions
-3. **Network**: Local access only (unless using remote storage)
-4. **Backups**: Encrypt backup files
-
-## Monitoring
-
-### Health Checks
-
+### Encryption
 ```bash
-# Check Hive storage health
-bun run storage:status
+# Generate key
+openssl rand -base64 32
 
-# Check database status
-bun run db:status
+# Set by platform
+railway variables set HIVE_ENCRYPTION_KEY=...
+flyctl secrets set HIVE_ENCRYPTION_KEY=...
+node_modules/.bin/wrangler secret put HIVE_ENCRYPTION_KEY
 ```
 
-### Logs
+⚠️ **Important**: Store encryption key securely - losing it means losing your data!
 
-- Application logs include database operations
-- Storage operations are logged with timestamps
+### S3 Security Checklist
+- ✅ Use least-privilege IAM policy
+- ✅ Enable S3 bucket encryption at rest
+- ✅ Enable bucket versioning (backup)
+- ✅ Keep access keys secure
+- ✅ Never commit secrets to git
 
-### Metrics
-
-- Query response times
-- Storage usage
-- Backup success/failure rates
-- Sync operation status
+---
 
 ## Troubleshooting
 
-### Common Issues
-
-**Database Connection Failed**
-- Check storage configuration
-- Verify file permissions
-- Ensure sufficient disk space
-
-**Migration Errors**
-- Check schema compatibility
-- Verify migration files
-- Run migrations manually
-
-
-**Backup Failures**
-- Check storage permissions
-- Verify available space
-- Check network connectivity for remote backups
-
-### Debug Commands
-
+### Database Connection Failed
 ```bash
-# Check database status
-bun run db:status
+# Check config
+echo $HIVE_STORAGE_TYPE
+echo $HIVE_DISK_PATH
 
-# Check storage health
+# Verify directory (disk)
+ls -la .blade/state/
+
+# Check status
 bun run storage:status
-
-# Test database connection
-bun run dev  # Check logs for database initialization
-
 ```
+
+### S3 Issues
+```bash
+# Test AWS credentials
+aws sts get-caller-identity
+
+# Test bucket access
+aws s3 ls s3://your-bucket/
+
+# Check environment
+echo $AWS_ACCESS_KEY_ID
+echo $HIVE_S3_BUCKET
+```
+
+### Replication Lag
+```bash
+# Check sync status
+bun run db:sync:status
+
+# Force sync
+bun run db:sync:upload
+
+# Check logs
+grep -i replication logs/app.log
+```
+
+---
 
 ## Best Practices
 
-1. **Regular Backups**: Schedule automated backups
-2. **Monitoring**: Set up health checks and alerts
-3. **Testing**: Test restore procedures regularly
-4. **Security**: Use encryption for sensitive data
-5. **Performance**: Monitor and optimize slow queries
-6. **Documentation**: Keep schema and configuration documented
-7. **Version Control**: Track schema changes in version control
+**Backups**:
+- Automate daily backups (use cron or platform scheduler)
+- Test restore procedures monthly
+- Keep: 7 daily, 4 weekly, 12 monthly backups
+
+**Security**:
+- Always use encryption for production
+- Rotate keys annually
+- Use separate IAM users for different environments
+
+**Monitoring**:
+- Set up health check alerts
+- Monitor query performance (<100ms disk, <500ms S3)
+- Track storage growth
+- Alert on backup failures
+
+**Performance**:
+- Use `disk` for single-region apps
+- Use `replication` for production (best of both)
+- Add indexes for frequent queries
+- Use pagination for large datasets
+
+---
+
+## Migration Examples
+
+### Disk → S3
+```bash
+# 1. Backup current data
+bun run db:backup
+
+# 2. Upload to S3
+aws s3 sync .blade/state/ s3://your-bucket/.blade/state/
+
+# 3. Update environment (see S3 config above)
+# 4. Deploy
+```
+
+### Disk → Replication
+```bash
+# 1. Set up S3 (see S3 setup)
+# 2. Upload initial data
+aws s3 sync .blade/state/ s3://your-bucket/.blade/state/
+
+# 3. Update environment variables (keep S3 vars, change type)
+HIVE_STORAGE_TYPE=replication
+HIVE_REPLICATION_MODE=async
+
+# 4. Deploy - will sync automatically
+```
+
+---
+
+## Quick Reference
+
+```bash
+# Status
+bun run storage:status
+bun run db:status
+
+# Backups
+bun run db:backup
+bun run db:backup:s3
+bun run db:restore
+
+# Migrations
+blade diff
+blade apply
+
+# Sync (replication)
+bun run db:sync:status
+bun run db:sync:upload
+
+# Logs by platform
+railway logs
+flyctl logs
+node_modules/.bin/wrangler tail
+docker logs <container>
+```
+
+---
+
+## Resources
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Platform deployment guides
+- [AWS S3 Docs](https://docs.aws.amazon.com/s3/)
+- [AWS Cost Calculator](https://calculator.aws/)
+
+---
+
+**Storage Decision Tree**:
+1. Deploying to Cloudflare? → Use **S3** (required)
+2. Production app? → Use **replication** (best)
+3. Development/simple app? → Use **disk** (default)
+
+**Last Updated**: January 2025
