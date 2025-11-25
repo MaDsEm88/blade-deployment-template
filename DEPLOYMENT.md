@@ -1,4 +1,4 @@
-68# Deployment Guide
+# Deployment Guide
 
 Complete guide for deploying your Blade application with embedded Hive database to Railway, Cloudflare Workers, and Fly.io.
 
