@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qodin",
+  "main": ".blade/dist/edge-worker.js",
+  "compatibility_date": "2025-01-22",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".blade/dist/public/"
+  },
+  "build": {
+    "command": "npm run build"
+  },
+  "no_bundle": true,
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["public/client/chunk.*.js"],
+      "fallthrough": true
+    }
+  ]
+}

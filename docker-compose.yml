@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - BLADE_PLATFORM=container
+      - BLADE_AUTH_SECRET=${BLADE_AUTH_SECRET}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - BLADE_PUBLIC_URL=${BLADE_PUBLIC_URL:-http://localhost:3000}
+      - CREEM_API_KEY=${CREEM_API_KEY}
+      - BLADE_RESEND_API_KEY=${BLADE_RESEND_API_KEY}
+      - ANANNAS_API_KEY=${ANANNAS_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+    volumes:
+      # Persist the embedded Hive database
+      - blade_data:/usr/src/app/.blade/state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  blade_data:
+    driver: local
