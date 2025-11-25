@@ -15,7 +15,7 @@ Production-ready template for deploying Blade applications with embedded Hive (S
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/yourusername/blade-deployment-template.git
+git clone https://github.com/MaDsEm88/blade-deployment-template.git
 cd blade-deployment-template
 bun install
 ```
