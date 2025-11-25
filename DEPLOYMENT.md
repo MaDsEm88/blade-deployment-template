@@ -1,4 +1,4 @@
-# Deployment Guide
+68# Deployment Guide
 
 Complete guide for deploying your Blade application with embedded Hive database to Railway, Cloudflare Workers, and Fly.io.
 
@@ -75,27 +75,18 @@ railway variables set RESEND_API_KEY=your-resend-key
 
 #### First-time Setup
 1. **Create account** at https://cloudflare.com
-2. **Authenticate**:
-   ```bash
-   bun x wrangler login
-   ```
-3. **Verify**:
-   ```bash
-   bun x wrangler whoami
+
    ```
 
 #### Deploy
+2.
 ```bash
 bun run deploy:cloudflare
-```
 
-#### Set Secrets
-```bash
-bun x wrangler secret put BLADE_AUTH_SECRET
-bun x wrangler secret put RESEND_API_KEY
 ```
-
-#### Configuration
+```
+#### C
+Configuration
 - **File**: `wrangler.jsonc`
 - **Runtime**: Edge workers
 - **Assets**: Served from binding
