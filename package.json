@@ -23,6 +23,7 @@
     "setup:fly": "echo 'Install flyctl from: https://fly.io/docs/hands-on/install-flyctl/' && echo 'Then run: flyctl auth login'",
     "setup:check": "./scripts/check-deployment-setup.sh",
     "setup:fix": "./scripts/fix-deployment-issues.sh",
+    "setup:validate": "./scripts/validate-deployment-configs.sh",
     
     "migrate": "blade diff --apply",
     "migrate:check": "blade diff",
