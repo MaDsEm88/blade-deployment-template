@@ -60,18 +60,18 @@ case $choice in
         echo ""
         
         echo -e "${YELLOW}Starting Wrangler authentication...${NC}"
-        bun x wrangler login
-        
-        echo ""
-        echo -e "${YELLOW}Verifying authentication...${NC}"
-        bun x wrangler whoami
+        node_modules/.bin/wrangler login
+
+echo ""
+echo -e "${YELLOW}Verifying authentication...${NC}"
+node_modules/.bin/wrangler whoami
         
         echo ""
         echo -e "${GREEN}✓ Cloudflare setup complete!${NC}"
         echo ""
         echo "Next steps:"
         echo "1. Deploy: bun run deploy:cloudflare"
-        echo "2. Set secrets: bun x wrangler secret put BLADE_AUTH_SECRET"
+echo "2. Set secrets: node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET"
         ;;
         
     3)

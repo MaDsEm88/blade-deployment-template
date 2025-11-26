@@ -44,12 +44,12 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Cloudflare Workers"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-if bun x wrangler whoami &> /dev/null; then
+if node_modules/.bin/wrangler whoami &> /dev/null; then
     echo -e "${GREEN}✓${NC} Wrangler authenticated"
-    bun x wrangler whoami 2>/dev/null || true
+   node_modules/.bin/wrangler whoami 2>/dev/null || true
 else
     echo -e "${RED}✗${NC} Wrangler not authenticated"
-    echo -e "${YELLOW}→${NC} Run: bun x wrangler login"
+    echo -e "${YELLOW}→${NC} Run: node_modules/.bin/wrangler login"
     echo -e "${YELLOW}→${NC} Or run: bun run setup:cloudflare"
     ALL_GOOD=false
 fi
