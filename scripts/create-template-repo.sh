@@ -181,7 +181,7 @@ A production-ready Blade starter template with embedded Hive database and automa
 
 ```bash
 # Use this template on GitHub or clone directly
-git clone https://github.com/yourusername/blade-deployment-template.git
+git clone https://github.com/MaDsEm88/blade-deployment-template.git
 cd blade-deployment-template
 bun install
 ```
@@ -315,7 +315,7 @@ MIT License - Use freely in your projects
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/yourusername/blade-deployment-template/issues)
+- Issues: [GitHub Issues](https://github.com/MaDsEm88/blade-deployment-template/issues)
 - Blade Framework: https://blade.new
 
 ---
@@ -368,7 +368,7 @@ echo "Next steps:"
 echo "1. cd ../$TARGET_DIR"
 echo "2. Review and customize files (update app names in configs)"
 echo "3. Create GitHub repository"
-echo "4. git remote add origin https://github.com/yourusername/$TARGET_DIR.git"
+echo "4. git remote add origin https://github.com/MaDsEm88/$TARGET_DIR.git"
 echo "5. git push -u origin main"
 echo ""
 echo "Don't forget to:"

@@ -345,8 +345,8 @@ export HIVE_REPLICATION_MODE=async
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/blade-deployment-template/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/blade-deployment-template/discussions)
+- **Issues**: [GitHub Issues](https://github.com/MaDsEm88/blade-deployment-template/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/MaDsEm88/blade-deployment-template/discussions)
 - **Documentation**: See [DEPLOYMENT.md](./DEPLOYMENT.md) and [DATABASE.md](./DATABASE.md)
 
 ## Contributing

@@ -24,7 +24,7 @@ export default function Home() {
 
       <h2 className="mt-2 font-bold underline">Deployment</h2>
       <p>
-        See <a className="font-bold" href="https://github.com/yourusername/blade-deployment-template/blob/main/DEPLOYMENT.md">DEPLOYMENT.md</a> for deployment instructions.
+        See <a className="font-bold" href="https://github.com/MaDsEm88/blade-deployment-template/blob/main/DEPLOYMENT.md">DEPLOYMENT.md</a> for deployment instructions.
       </p>
 
       <h3 className="mt-2 font-bold underline">Quick Deploy Check</h3>
