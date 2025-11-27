@@ -29,6 +29,10 @@ ENV BLADE_PLATFORM=container
 ENV HIVE_STORAGE_TYPE=disk
 ENV HIVE_DISK_PATH=.blade/state
 
+# Create and document the volume mount point for persistent database storage
+RUN mkdir -p .blade/state
+VOLUME [".blade/state"]
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD bun -e "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" || exit 1

@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Deploy your Blade application with embedded Hive database to Railway, Cloudflare Workers, or Fly.io.
+Deploy your Blade application with embedded Hive database to Railway, Cloudflare Workers, Fly.io, or Sliplane.
 
 ## Quick Start
 
@@ -147,6 +147,81 @@ flyctl deploy
 
 ---
 
+## Sliplane (Container Hosting with Persistent Volumes)
+
+### Setup
+
+1. **Create Sliplane Account**:
+   - Go to [sliplane.io](https://sliplane.io)
+   - Create account and log in
+
+2. **Create Server** (if you don't have one):
+   - Go to Sliplane Dashboard
+   - Create a new Server
+   - Choose appropriate resources
+
+3. **Create Volume** (required for database persistence):
+   ```bash
+   # Via Sliplane Dashboard:
+   # 1. Go to Server Settings > Volumes
+   # 2. Click "Add Volume"
+   # 3. Name it: "blade-data"
+   # 4. Recommended size: 1GB+ (scale based on data growth)
+   ```
+
+4. **Set Environment Variables**:
+   - Via Sliplane Dashboard > Service Settings > Environment Variables:
+   ```bash
+   NODE_ENV=production
+   BLADE_PLATFORM=container
+   HIVE_STORAGE_TYPE=disk
+   HIVE_DISK_PATH=.blade/state
+   BLADE_AUTH_SECRET=<generate-with-openssl>
+   BLADE_PUBLIC_URL=https://your-domain.example.com
+   ```
+
+### Deploy
+
+1. **Push Docker Image**:
+   ```bash
+   # Build image
+   docker build -t your-registry/your-app:latest .
+   
+   # Push to registry (Docker Hub, GitHub Container Registry, etc.)
+   docker push your-registry/your-app:latest
+   ```
+
+2. **Create Service** via Sliplane Dashboard:
+   - Click "Deploy a Service"
+   - Select Docker image from your registry
+   - Set environment variables
+   - Click "Configure volumes"
+   - Attach "blade-data" volume
+   - Set mount path to: `/usr/src/app/.blade/state`
+   - Deploy service
+
+3. **Verify Deployment**:
+   ```bash
+   # Access via dashboard to check logs
+   # Service should be accessible at your configured domain
+   ```
+
+**Storage**: Persistent volume at `/usr/src/app/.blade/state`
+
+**Key Points**:
+- Mount path must be exactly: `/usr/src/app/.blade/state`
+- Sliplane provides automatic daily backups for all volumes
+- Volume size should match your data needs (start with 1GB+)
+- Multiple services can share the same volume if needed
+
+**Troubleshooting**:
+- "Mount path mismatch" → Ensure path is exactly `/usr/src/app/.blade/state`
+- "Volume not found" → Create volume in Server Settings > Volumes first
+- Check logs → Via Sliplane Dashboard > Service > Logs
+- Database persists after restart → Verify volume is attached
+
+---
+
 ## Storage Configuration by Platform
 
 | Platform | Required Storage | Setup Difficulty |
@@ -154,10 +229,11 @@ flyctl deploy
 | Railway | Disk (automatic) | Easy |
 | Cloudflare | S3 (manual) | Medium |
 | Fly.io | Disk (manual volume) | Medium |
+| Sliplane | Disk (manual volume) | Easy |
 
 ### Configuration Examples
 
-**Disk (Railway, Fly.io)**:
+**Disk (Railway, Fly.io, Sliplane)**:
 ```bash
 HIVE_STORAGE_TYPE=disk
 HIVE_DISK_PATH=.blade/state
@@ -236,14 +312,14 @@ docker run -d -p 3000:3000 \
 
 ## Platform Comparison
 
-| Feature | Railway | Cloudflare | Fly.io |
-|---------|---------|------------|--------|
-| Setup | ⭐⭐⭐ Easy | ⭐⭐ Medium | ⭐⭐ Medium |
-| Storage | Auto volume | S3 required | Manual volume |
-| Global | Regional | 150+ locations | Multi-region |
-| Scale to Zero | ❌ | ✅ | ✅ |
-| Free Tier | $5 credit/mo | 100k req/day | 3 VMs |
-| Best For | Quick deploy | Low latency | Docker apps |
+| Feature | Railway | Cloudflare | Fly.io | Sliplane |
+|---------|---------|------------|--------|----------|
+| Setup | ⭐⭐⭐ Easy | ⭐⭐ Medium | ⭐⭐ Medium | ⭐⭐⭐ Easy |
+| Storage | Auto volume | S3 required | Manual volume | Manual volume |
+| Global | Regional | 150+ locations | Multi-region | Regional |
+| Scale to Zero | ❌ | ✅ | ✅ | ❌ |
+| Free Tier | $5 credit/mo | 100k req/day | 3 VMs | Paid only |
+| Best For | Quick deploy | Low latency | Docker apps | Container hosting |
 
 ---
 

@@ -1,0 +1,78 @@
+# Sliplane Deployment Configuration
+# Configure volume mounts and deployment settings for Sliplane
+#
+# To deploy to Sliplane:
+# 1. Create a volume on Sliplane for persistent database storage
+# 2. Attach this service to that volume with mount path: /usr/src/app/.blade/state
+# 3. Set environment variables as documented below
+# 4. Deploy the service
+
+services:
+  blade_app:
+    # Docker image reference
+    image: "your-registry/your-app:latest"
+    
+    # Port configuration
+    ports:
+      - "3000:3000"
+    
+    # Health check configuration
+    health_check:
+      path: "/"
+      interval: 30
+      timeout: 5
+      
+    # Volume mounts for persistent Hive database storage
+    volumes:
+      # Mount path inside container must match HIVE_DISK_PATH
+      # This volume stores the embedded Hive SQLite database
+      - mount_path: "/usr/src/app/.blade/state"
+        volume_name: "blade-data"
+        # The volume should be created on the Sliplane server with adequate size
+        # Example: 1GB+ for typical applications
+    
+    # Environment variables for Hive database configuration
+    environment:
+      # Core settings
+      NODE_ENV: "production"
+      BLADE_PLATFORM: "container"
+      
+      # Storage configuration - use disk storage with Sliplane volumes
+      HIVE_STORAGE_TYPE: "disk"
+      HIVE_DISK_PATH: ".blade/state"
+      
+      # Security (set these via Sliplane secure environment variables)
+      # BLADE_AUTH_SECRET: "your-secret-key"
+      # BLADE_PUBLIC_URL: "your-domain"
+      
+      # Optional: Enable encryption for production
+      # HIVE_ENCRYPTION_KEY: "your-encryption-key"
+      
+      # Optional: Additional API keys
+      # BLADE_RESEND_API_KEY: "your-resend-key"
+      # OPENROUTER_API_KEY: "your-openrouter-key"
+      # ANTHROPIC_API_KEY: "your-anthropic-key"
+
+# Volume configuration notes:
+# - Create "blade-data" volume on Sliplane Server Settings > Volumes
+# - Volume size: Minimum 1GB, scale based on data growth expectations
+# - Mount path must be exactly: /usr/src/app/.blade/state
+# - This path corresponds to HIVE_DISK_PATH=.blade/state in environment
+# - Multiple services can share the same volume if needed
+# - Sliplane provides automatic daily backups for all volumes
+
+# Deployment steps:
+# 1. Build and push Docker image to your registry
+# 2. Go to Sliplane > Create Service
+# 3. Select Docker image from your registry
+# 4. Set environment variables (mark sensitive ones as secure)
+# 5. In Service Settings > Volumes > Add Volume:
+#    - Select "blade-data" volume
+#    - Set mount path to: /usr/src/app/.blade/state
+# 6. Deploy service
+# 7. Verify database persistence by creating test data and restarting service
+
+# For more information:
+# - Sliplane Volumes Docs: https://docs.sliplane.io/volumes
+# - Blade Framework: https://docs.bladeframework.dev/
+# - Hive Database: https://blade.dev/docs/hive
