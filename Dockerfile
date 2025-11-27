@@ -11,6 +11,9 @@ RUN bun install --frozen-lockfile
 # Copy application files
 COPY . .
 
+# Build the application
+RUN bun run build
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 -G nodejs && \
