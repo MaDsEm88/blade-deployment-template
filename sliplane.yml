@@ -1,0 +1,65 @@
+---
+# Sliplane Server Configuration for Blade + Hive Database
+# Documentation: https://docs.sliplane.io/servers/create-a-server
+
+name: blade-hive-app
+description: Blade application with embedded Hive database
+
+# Container configuration
+container:
+  image: oven/bun:1-alpine
+  dockerfile: ./Dockerfile
+  port: 3000
+  exposed_port: 3000
+
+# Server resources
+resources:
+  cpu: 1
+  memory: 512Mi
+  storage: 10Gi
+
+# Volumes for persistent data storage
+volumes:
+  - name: blade-data
+    mount_path: /usr/src/app/.blade/state
+    size: 5Gi
+    type: persistent
+
+# Environment variables
+environment:
+  NODE_ENV: production
+  BLADE_PLATFORM: container
+  HIVE_STORAGE_TYPE: disk
+  HIVE_DISK_PATH: .blade/state
+
+# Health check configuration
+health_checks:
+  - type: http
+    path: /
+    port: 3000
+    interval: 30s
+    timeout: 5s
+    initial_delay: 10s
+    success_threshold: 1
+    failure_threshold: 3
+
+# Scaling configuration
+scaling:
+  min_instances: 1
+  max_instances: 3
+  target_cpu_utilization: 70
+  target_memory_utilization: 80
+
+# Auto-restart policy
+restart_policy: always
+
+# Monitoring and metrics
+monitoring:
+  enabled: true
+  collect_metrics: true
+  expose_metrics: true
+
+# Network configuration
+network:
+  force_https: true
+  auto_restart: true

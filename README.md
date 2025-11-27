@@ -1,13 +1,14 @@
 # Blade Deployment Template
 
-Production-ready template for deploying Blade applications with embedded Hive (SQLite) database to Railway, Cloudflare Workers, and Fly.io.
+Production-ready template for deploying Blade applications with embedded Hive (SQLite) database to Railway, Cloudflare Workers, Fly.io, and Sliplane.
 
 ## Features
 
 - ✅ **Embedded Hive Database** - SQLite-based storage, no external database needed
-- ✅ **Multiple Deployment Targets** - Railway, Cloudflare Workers, Fly.io, Docker
+- ✅ **Multiple Deployment Targets** - Railway, Cloudflare Workers, Fly.io, Sliplane, Docker
 - ✅ **Flexible Storage** - Disk (local), S3 (cloud), or Replication (hybrid)
 - ✅ **Automated Backups** - Built-in backup and restore scripts
+- ✅ **Cloudflare Integration** - Native support via Sliplane or DNS configuration
 - ✅ **Production Ready** - Health checks, monitoring, security best practices
 
 ## Quick Start
@@ -34,16 +35,18 @@ Choose your platform:
 ```bash
 bun run deploy:railway      # Railway.app
 bun run deploy:cloudflare   # Cloudflare Workers
+bun run deploy:sliplane     # Sliplane (with Cloudflare)
 flyctl deploy              # Fly.io
 ```
 
 ## Platform Comparison
 
-| Platform | Setup | Storage | Best For |
-|----------|-------|---------|----------|
-| **Railway** | Easy | ✅ Disk (auto) | Quick deployments |
-| **Cloudflare** | Medium | ⚠️ S3 (required) | Global edge, low latency |
-| **Fly.io** | Medium | ✅ Disk (manual) | Docker, multi-region |
+| Platform | Setup | Storage | Cloudflare | Best For |
+|----------|-------|---------|------------|----------|
+| **Railway** | Easy | ✅ Disk (auto) | ⚠️ DNS only | Quick deployments |
+| **Cloudflare** | Medium | ⚠️ S3 (required) | ✅ Native | Global edge, low latency |
+| **Sliplane** | Medium | ✅ Disk (volumes) | ✅ Integrated | Cloudflare users |
+| **Fly.io** | Medium | ✅ Disk (manual) | ⚠️ DNS only | Docker, multi-region |
 
 ## Storage Configuration
 
@@ -177,6 +180,43 @@ bun run migrate            # Apply migrations
 
 **Storage**: Volume mounted at `.blade/state`
 
+### Sliplane (Best for Cloudflare Integration)
+
+1. Install and authenticate:
+   ```bash
+   brew install sliplane-cli
+   sliplane auth login
+   ```
+
+2. Create project and app:
+   ```bash
+   sliplane project create --name my-project
+   sliplane app create --name blade-hive-app
+   ```
+
+3. Set environment variables:
+   ```bash
+   sliplane app set-env BLADE_AUTH_SECRET=$(openssl rand -base64 30) --name blade-hive-app
+   sliplane app set-env BLADE_PUBLIC_URL=https://your-domain.com --name blade-hive-app
+   sliplane app set-env RESEND_API_KEY=your-resend-key --name blade-hive-app
+   ```
+
+4. Set up custom domain with Cloudflare:
+   ```bash
+   sliplane domain add --name your-domain.com
+   sliplane app domain-add --app blade-hive-app --domain your-domain.com
+   # Configure Cloudflare nameservers (see SLIPLANE.md for details)
+   ```
+
+5. Deploy:
+   ```bash
+   bun run deploy:sliplane
+   ```
+
+**Storage**: Persistent volumes at `.blade/state`
+
+**See**: [SLIPLANE.md](./SLIPLANE.md) for complete Sliplane and Cloudflare integration guide
+
 ## Project Structure
 
 ```
@@ -194,6 +234,7 @@ blade-deployment-template/
 ├── wrangler.jsonc          # Cloudflare config
 ├── railway.json            # Railway config
 ├── fly.toml                # Fly.io config
+├── sliplane.yml            # Sliplane config
 ├── docker-compose.yml      # Docker config
 ├── Dockerfile              # Docker build
 └── package.json            # Scripts and dependencies
@@ -211,6 +252,7 @@ bun run build              # Build for production
 ```bash
 bun run deploy:railway     # Deploy to Railway
 bun run deploy:cloudflare  # Deploy to Cloudflare
+bun run deploy:sliplane    # Deploy to Sliplane
 flyctl deploy             # Deploy to Fly.io
 ```
 
@@ -247,6 +289,7 @@ bun run storage:status
 railway login
 node_modules/.bin/wrangler login
 flyctl auth login
+sliplane auth login
 ```
 
 **Database not found**:
@@ -339,6 +382,11 @@ export HIVE_REPLICATION_MODE=async
 - Free tier: 100k requests/day
 - S3 costs: ~$0.03-0.05/month (1GB + 10k requests)
 
+### Sliplane
+- Pricing varies by plan
+- See https://sliplane.io/pricing for details
+- No external storage costs (volumes included)
+
 ### Fly.io
 - Free tier: 3 shared-cpu VMs
 - Volume: ~$0.15/GB/month
@@ -362,3 +410,4 @@ MIT License - see LICENSE file for details
 **Quick Links**:
 - [Deployment Guide](./DEPLOYMENT.md)
 - [Database Configuration](./DATABASE.md)
+- [Sliplane Deployment Guide](./SLIPLANE.md)

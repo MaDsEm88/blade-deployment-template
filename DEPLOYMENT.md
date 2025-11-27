@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Deploy your Blade application with embedded Hive database to Railway, Cloudflare Workers, or Fly.io.
+Deploy your Blade application with embedded Hive database to Railway, Cloudflare Workers, Fly.io, or Sliplane.
 
 ## Quick Start
 
@@ -12,8 +12,10 @@ bun run setup:check
 bun run setup:fix
 
 # 3. Deploy
-bun run deploy:railway      # or deploy:cloudflare
-flyctl deploy              # for Fly.io
+bun run deploy:railway      # Railway (easiest)
+bun run deploy:cloudflare   # Cloudflare Workers (global)
+flyctl deploy              # Fly.io (docker)
+bun run deploy:sliplane    # Sliplane (with Cloudflare)
 ```
 
 ---
@@ -147,6 +149,69 @@ flyctl deploy
 
 ---
 
+## Sliplane (Cloudflare Integration)
+
+### Setup
+
+1. **Install Sliplane CLI**:
+   ```bash
+   brew install sliplane-cli
+   # Or download from: https://sliplane.io/docs/getting-started/installation
+   ```
+
+2. **Authenticate**:
+   ```bash
+   sliplane auth login
+   ```
+
+3. **Create Project** (if first time):
+   ```bash
+   sliplane project create --name my-project
+   sliplane project set-default my-project
+   ```
+
+4. **Create App**:
+   ```bash
+   sliplane app create --name blade-hive-app
+   ```
+
+### Deploy
+
+```bash
+bun run deploy:sliplane
+```
+
+### Environment Variables
+
+```bash
+sliplane app set-env BLADE_AUTH_SECRET=$(openssl rand -base64 30) --name blade-hive-app
+sliplane app set-env BLADE_PUBLIC_URL=https://your-domain.com --name blade-hive-app
+sliplane app set-env RESEND_API_KEY=your-resend-key --name blade-hive-app
+```
+
+**Storage**: Automatic persistent volume at `.blade/state`
+
+### Cloudflare Domain Integration
+
+```bash
+# Add domain
+sliplane domain add --name your-domain.com
+
+# Link to app
+sliplane app domain-add --app blade-hive-app --domain your-domain.com
+
+# Configure Cloudflare nameservers (see output above)
+```
+
+For detailed Cloudflare integration steps, see [SLIPLANE.md](./SLIPLANE.md#cloudflare-integration).
+
+**Troubleshooting**:
+- Not authenticated → `sliplane auth login`
+- Check logs → `sliplane app logs --app blade-hive-app`
+- See detailed guide → [SLIPLANE.md](./SLIPLANE.md)
+
+---
+
 ## Storage Configuration by Platform
 
 | Platform | Required Storage | Setup Difficulty |
@@ -154,6 +219,7 @@ flyctl deploy
 | Railway | Disk (automatic) | Easy |
 | Cloudflare | S3 (manual) | Medium |
 | Fly.io | Disk (manual volume) | Medium |
+| Sliplane | Disk (persistent volumes) | Medium |
 
 ### Configuration Examples
 
@@ -236,14 +302,15 @@ docker run -d -p 3000:3000 \
 
 ## Platform Comparison
 
-| Feature | Railway | Cloudflare | Fly.io |
-|---------|---------|------------|--------|
-| Setup | ⭐⭐⭐ Easy | ⭐⭐ Medium | ⭐⭐ Medium |
-| Storage | Auto volume | S3 required | Manual volume |
-| Global | Regional | 150+ locations | Multi-region |
-| Scale to Zero | ❌ | ✅ | ✅ |
-| Free Tier | $5 credit/mo | 100k req/day | 3 VMs |
-| Best For | Quick deploy | Low latency | Docker apps |
+| Feature | Railway | Cloudflare | Fly.io | Sliplane |
+|---------|---------|------------|--------|----------|
+| Setup | ⭐⭐⭐ Easy | ⭐⭐ Medium | ⭐⭐ Medium | ⭐⭐ Medium |
+| Storage | Auto volume | S3 required | Manual volume | Persistent volumes |
+| Global | Regional | 150+ locations | Multi-region | Multi-region |
+| Scale to Zero | ❌ | ✅ | ✅ | ✅ |
+| Cloudflare | ⚠️ DNS only | ✅ Native | ⚠️ DNS only | ✅ Integrated |
+| Free Tier | $5 credit/mo | 100k req/day | 3 VMs | Varies |
+| Best For | Quick deploy | Low latency | Docker apps | Cloudflare users |
 
 ---
 
@@ -257,7 +324,8 @@ bun run storage:status       # Check storage health
 
 # Deployment
 bun run deploy:railway       # Railway
-bun run deploy:cloudflare    # Cloudflare
+bun run deploy:cloudflare    # Cloudflare Workers
+bun run deploy:sliplane      # Sliplane
 flyctl deploy               # Fly.io
 
 # Database
@@ -306,6 +374,12 @@ bun run storage:status          # Check configuration
 - Create volume first: `flyctl volumes create blade_data --size 1`
 - Volume must be in same region as app
 
+**Sliplane**:
+- Authenticate first: `sliplane auth login`
+- Check status: `sliplane app status --app blade-hive-app`
+- View logs: `sliplane app logs --app blade-hive-app`
+- See [SLIPLANE.md](./SLIPLANE.md) for detailed troubleshooting
+
 ---
 
 ## Security Checklist
@@ -334,7 +408,7 @@ bun run storage:status          # Check configuration
 
 ## Next Steps
 
-1. ✅ Choose platform (Railway for easy, Cloudflare for global, Fly.io for Docker)
+1. ✅ Choose platform (Railway for easy, Cloudflare for global, Fly.io for Docker, Sliplane for Cloudflare integration)
 2. ✅ Configure storage (disk or S3)
 3. ✅ Set environment variables
 4. ✅ Deploy
@@ -345,4 +419,5 @@ bun run storage:status          # Check configuration
 **Need Help?** 
 - Run `bun run setup:check`
 - See [DATABASE.md](./DATABASE.md) for S3 setup
+- See [SLIPLANE.md](./SLIPLANE.md) for Sliplane deployment
 - Check platform logs for errors

@@ -22,9 +22,10 @@ echo ""
 echo "1) Railway.app"
 echo "2) Cloudflare Workers"
 echo "3) Fly.io"
-echo "4) All of them (full setup)"
+echo "4) Sliplane"
+echo "5) All of them (full setup)"
 echo ""
-read -p "Enter number (1-4): " choice
+read -p "Enter number (1-5): " choice
 
 case $choice in
     1)
@@ -78,7 +79,7 @@ echo "2. Set secrets: node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET"
         echo ""
         echo -e "${BLUE}━━━ Fly.io Setup ━━━${NC}"
         echo ""
-        
+
         # Check if flyctl is installed
         if ! command -v flyctl &> /dev/null; then
             echo -e "${YELLOW}flyctl is not installed.${NC}"
@@ -96,12 +97,12 @@ echo "2. Set secrets: node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET"
             echo ""
             read -p "Press Enter after installing flyctl..."
         fi
-        
+
         if command -v flyctl &> /dev/null; then
             echo ""
             echo -e "${YELLOW}Starting Fly.io authentication...${NC}"
             flyctl auth login
-            
+
             echo ""
             echo -e "${GREEN}✓ Fly.io setup complete!${NC}"
             echo ""
@@ -114,14 +115,52 @@ echo "2. Set secrets: node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET"
             exit 1
         fi
         ;;
-        
+
     4)
+        echo ""
+        echo -e "${BLUE}━━━ Sliplane Setup ━━━${NC}"
+        echo ""
+
+        # Check if sliplane CLI is installed
+        if ! command -v sliplane &> /dev/null; then
+            echo -e "${YELLOW}Sliplane CLI is not installed.${NC}"
+            echo ""
+            echo "Please install sliplane-cli using:"
+            echo "  brew install sliplane-cli"
+            echo ""
+            echo "Or download from: https://sliplane.io/docs/getting-started/installation"
+            echo ""
+            read -p "Press Enter after installing sliplane-cli..."
+        fi
+
+        if command -v sliplane &> /dev/null; then
+            echo ""
+            echo -e "${YELLOW}Starting Sliplane authentication...${NC}"
+            sliplane auth login
+
+            echo ""
+            echo -e "${GREEN}✓ Sliplane setup complete!${NC}"
+            echo ""
+            echo "Next steps:"
+            echo "1. Create project: sliplane project create --name my-project"
+            echo "2. Create app: sliplane app create --name blade-hive-app"
+            echo "3. Set env vars: sliplane app set-env BLADE_AUTH_SECRET=your-secret --name blade-hive-app"
+            echo "4. Deploy: bun run deploy:sliplane"
+            echo ""
+            echo "For detailed instructions, see: SLIPLANE.md"
+        else
+            echo -e "${RED}✗ sliplane-cli not found. Please install it first.${NC}"
+            exit 1
+        fi
+        ;;
+
+    5)
         echo ""
         echo -e "${BLUE}━━━ Full Platform Setup ━━━${NC}"
         echo ""
         
         # Railway
-        echo -e "${YELLOW}[1/3] Setting up Railway...${NC}"
+        echo -e "${YELLOW}[1/4] Setting up Railway...${NC}"
         if ! command -v railway &> /dev/null; then
             npm install -g @railway/cli
         fi
@@ -129,17 +168,27 @@ echo "2. Set secrets: node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET"
         
         # Cloudflare
         echo ""
-        echo -e "${YELLOW}[2/3] Setting up Cloudflare...${NC}"
-        bun x wrangler login || true
+        echo -e "${YELLOW}[2/4] Setting up Cloudflare...${NC}"
+        node_modules/.bin/wrangler login || true
         
         # Fly.io
         echo ""
-        echo -e "${YELLOW}[3/3] Setting up Fly.io...${NC}"
+        echo -e "${YELLOW}[3/4] Setting up Fly.io...${NC}"
         if command -v flyctl &> /dev/null; then
             flyctl auth login || true
         else
             echo -e "${YELLOW}flyctl not installed - skipping${NC}"
             echo "Install from: https://fly.io/docs/hands-on/install-flyctl/"
+        fi
+        
+        # Sliplane
+        echo ""
+        echo -e "${YELLOW}[4/4] Setting up Sliplane...${NC}"
+        if command -v sliplane &> /dev/null; then
+            sliplane auth login || true
+        else
+            echo -e "${YELLOW}sliplane-cli not installed - skipping${NC}"
+            echo "Install from: brew install sliplane-cli"
         fi
         
         echo ""
@@ -149,7 +198,7 @@ echo "2. Set secrets: node_modules/.bin/wrangler secret put BLADE_AUTH_SECRET"
         ;;
         
     *)
-        echo -e "${RED}Invalid choice. Please run again and select 1-4.${NC}"
+        echo -e "${RED}Invalid choice. Please run again and select 1-5.${NC}"
         exit 1
         ;;
 esac

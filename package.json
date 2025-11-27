@@ -16,11 +16,13 @@
     "deploy:cloudflare": "node_modules/.bin/wrangler deploy",
     "deploy:railway": "railway up",
     "deploy:fly": "flyctl deploy",
+    "deploy:sliplane": "sliplane deploy --config sliplane.yml",
     "deploy:cloudflare:prod": "node_modules/.bin/wrangler deploy --env production",
     
     "setup:railway": "echo 'Install Railway CLI: npm install -g @railway/cli' && echo 'Then run: railway login'",
     "setup:cloudflare": "node_modules/.bin/wrangler login",
     "setup:fly": "echo 'Install flyctl from: https://fly.io/docs/hands-on/install-flyctl/' && echo 'Then run: flyctl auth login'",
+    "setup:sliplane": "echo 'Install Sliplane CLI: brew install sliplane-cli' && echo 'Then run: sliplane auth login'",
     "setup:check": "./scripts/check-deployment-setup.sh",
     "setup:fix": "./scripts/fix-deployment-issues.sh",
     "setup:validate": "./scripts/validate-deployment-configs.sh",

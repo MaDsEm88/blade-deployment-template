@@ -78,6 +78,28 @@ else
 fi
 echo ""
 
+# Check Sliplane
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Sliplane"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if command -v sliplane &> /dev/null; then
+    echo -e "${GREEN}✓${NC} sliplane CLI installed"
+    
+    if sliplane auth whoami &> /dev/null; then
+        echo -e "${GREEN}✓${NC} Sliplane authenticated"
+        sliplane auth whoami 2>/dev/null || true
+    else
+        echo -e "${RED}✗${NC} Sliplane not authenticated"
+        echo -e "${YELLOW}→${NC} Run: sliplane auth login"
+        ALL_GOOD=false
+    fi
+else
+    echo -e "${YELLOW}ℹ${NC} sliplane CLI not installed (optional)"
+    echo -e "${YELLOW}→${NC} Install: brew install sliplane-cli"
+    echo -e "${YELLOW}→${NC} Or run: bun run setup:sliplane"
+fi
+echo ""
+
 # Final summary
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [ "$ALL_GOOD" = true ]; then
@@ -87,8 +109,9 @@ if [ "$ALL_GOOD" = true ]; then
     echo "  • bun run deploy:railway"
     echo "  • bun run deploy:cloudflare"
     echo "  • bun run deploy:fly"
+    echo "  • bun run deploy:sliplane"
 else
-    echo -e "${RED}✗ Some deployment tools need setup${NC}"
+    echo -e "${YELLOW}⚠ Some deployment tools need setup${NC}"
     echo ""
     echo "Run: bun run setup:fix"
     echo "Or see: DEPLOYMENT.md for detailed instructions"
