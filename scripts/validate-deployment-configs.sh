@@ -79,6 +79,12 @@ if [ -f "Dockerfile" ]; then
         log_error "Missing storage configuration"
     fi
     
+    if grep -q "RUN bun run build" Dockerfile; then
+        log_success "Includes build step"
+    else
+        log_error "Missing build step (RUN bun run build)"
+    fi
+    
 else
     log_error "Dockerfile not found"
 fi
