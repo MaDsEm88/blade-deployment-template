@@ -92,9 +92,15 @@ bun run migrate            # Apply migrations
 
 ## Documentation
 
+### Deployment & Database
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide for all platforms
 - **[DATABASE.md](./DATABASE.md)** - Database configuration and S3 setup
 - **[SCRIPTS_USAGE.md](./SCRIPTS_USAGE.md)** - Database scripts reference
+
+### OAuth Authentication
+- **[OAUTH_IMPLEMENTATION_COMPARISON.md](./OAUTH_IMPLEMENTATION_COMPARISON.md)** - Compare OAuth approaches and choose the best for your needs
+- **[CURRENT_OAUTH_WITH_USERNAME_ROUTES.md](./CURRENT_OAUTH_WITH_USERNAME_ROUTES.md)** - Enhance existing OAuth setup to route users to `/username` pages
+- **[CLIENT_SIDE_OAUTH_SILENT_REDIRECT.md](./CLIENT_SIDE_OAUTH_SILENT_REDIRECT.md)** - Client-side OAuth pattern for seamless single-page experience
 
 ## Deployment Guides
 
