@@ -1,7 +1,14 @@
 # Sliplane Deployment Configuration
 # Configure volume mounts and deployment settings for Sliplane
 #
-# To deploy to Sliplane:
+# 📖 Full Guide: See SLIPLANE_VOLUMES.md for comprehensive documentation on:
+#    - Volume setup and management
+#    - Scaling storage as your database grows
+#    - Backup and restore procedures
+#    - Migration paths (disk → S3 → replication)
+#    - Troubleshooting and best practices
+#
+# Quick Start:
 # 1. Create a volume on Sliplane for persistent database storage
 # 2. Attach this service to that volume with mount path: /usr/src/app/.blade/state
 # 3. Set environment variables as documented below

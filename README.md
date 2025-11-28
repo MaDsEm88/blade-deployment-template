@@ -1,12 +1,13 @@
 # Blade Deployment Template
 
-Production-ready template for deploying Blade applications with embedded Hive (SQLite) database to Railway, Cloudflare Workers, and Fly.io.
+Production-ready template for deploying Blade applications with embedded Hive (SQLite) database to Railway, Cloudflare Workers, Fly.io, Sliplane, and Docker.
 
 ## Features
 
 - ✅ **Embedded Hive Database** - SQLite-based storage, no external database needed
-- ✅ **Multiple Deployment Targets** - Railway, Cloudflare Workers, Fly.io, Docker
+- ✅ **Multiple Deployment Targets** - Railway, Cloudflare Workers, Fly.io, Sliplane, Docker
 - ✅ **Flexible Storage** - Disk (local), S3 (cloud), or Replication (hybrid)
+- ✅ **Persistent Volumes** - Proper volume configuration for all platforms
 - ✅ **Automated Backups** - Built-in backup and restore scripts
 - ✅ **Production Ready** - Health checks, monitoring, security best practices
 
@@ -44,6 +45,7 @@ flyctl deploy              # Fly.io
 | **Railway** | Easy | ✅ Disk (auto) | Quick deployments |
 | **Cloudflare** | Medium | ⚠️ S3 (required) | Global edge, low latency |
 | **Fly.io** | Medium | ✅ Disk (manual) | Docker, multi-region |
+| **Sliplane** | Easy | ✅ Disk (manual) | Container hosting, volume management |
 
 ## Storage Configuration
 
@@ -94,6 +96,7 @@ bun run migrate            # Apply migrations
 
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide for all platforms
 - **[DATABASE.md](./DATABASE.md)** - Database configuration and S3 setup
+- **[SLIPLANE_VOLUMES.md](./SLIPLANE_VOLUMES.md)** - Sliplane volume management and scaling guide
 - **[SCRIPTS_USAGE.md](./SCRIPTS_USAGE.md)** - Database scripts reference
 
 ## Deployment Guides
@@ -177,6 +180,39 @@ bun run migrate            # Apply migrations
 
 **Storage**: Volume mounted at `.blade/state`
 
+### Sliplane (Best for Container Hosting with Managed Volumes)
+
+**📖 Full Guide**: See [SLIPLANE_VOLUMES.md](./SLIPLANE_VOLUMES.md) for comprehensive volume management.
+
+1. Create account at [sliplane.io](https://sliplane.io)
+
+2. Create volume via Dashboard:
+   ```bash
+   # Server Settings > Volumes > Add Volume
+   # Name: blade-data
+   # Size: 1GB+ (can scale as needed)
+   ```
+
+3. Build and push Docker image:
+   ```bash
+   docker build -t your-registry/your-app:latest .
+   docker push your-registry/your-app:latest
+   ```
+
+4. Deploy service:
+   - Select Docker image
+   - Set environment variables (see DEPLOYMENT.md)
+   - Attach volume: `/usr/src/app/.blade/state`
+
+**Storage**: Persistent volume with automatic daily backups
+
+**Key Benefits**:
+- Easy volume management via dashboard
+- Automatic daily backups included
+- Scale volume size as data grows
+- Share volumes between services
+- Simple migration paths to S3 or replication
+
 ## Project Structure
 
 ```
@@ -194,6 +230,7 @@ blade-deployment-template/
 ├── wrangler.jsonc          # Cloudflare config
 ├── railway.json            # Railway config
 ├── fly.toml                # Fly.io config
+├── sliplane.yml            # Sliplane config
 ├── docker-compose.yml      # Docker config
 ├── Dockerfile              # Docker build
 └── package.json            # Scripts and dependencies
