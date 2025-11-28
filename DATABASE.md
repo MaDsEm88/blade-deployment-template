@@ -38,6 +38,7 @@ HIVE_DISK_PATH=.blade/state
 **Platform Setup**:
 - Railway: Automatic (volume created)
 - Fly.io: Manual - `flyctl volumes create blade_data --size 1`
+- Sliplane: Manual - Create volume in Server Settings > Volumes tab
 - Docker: Configured in docker-compose.yml
 
 ### S3 Storage (Required for Cloudflare)

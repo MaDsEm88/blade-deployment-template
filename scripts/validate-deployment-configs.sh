@@ -85,6 +85,12 @@ if [ -f "Dockerfile" ]; then
         log_error "Missing build step (RUN bun run build)"
     fi
     
+    if grep -q "VOLUME" Dockerfile; then
+        log_success "Includes VOLUME instruction for persistent storage"
+    else
+        log_warning "Missing VOLUME instruction (recommended for documentation)"
+    fi
+    
 else
     log_error "Dockerfile not found"
 fi
@@ -302,9 +308,42 @@ fi
 
 echo ""
 
-# Test 6: Package.json scripts
+# Test 6: Sliplane configuration
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "6. Package.json Scripts"
+echo "6. Sliplane Configuration"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [ -f "sliplane.yml" ]; then
+    log_success "sliplane.yml exists"
+    
+    # Check for volume configuration
+    if grep -q "volumes:" sliplane.yml; then
+        log_success "Volumes configuration present"
+        if grep -q '"/usr/src/app/.blade/state"' sliplane.yml || grep -q '/usr/src/app/.blade/state' sliplane.yml; then
+            log_success "Correct volume mount path configured"
+        else
+            log_error "Incorrect volume mount path"
+        fi
+    else
+        log_warning "Missing volumes configuration"
+    fi
+    
+    # Check for storage type configuration
+    if grep -q "HIVE_STORAGE_TYPE" sliplane.yml; then
+        log_success "Storage type configured in Sliplane config"
+    else
+        log_warning "Missing storage type in Sliplane config"
+    fi
+    
+else
+    log_warning "sliplane.yml not found (optional, but recommended for Sliplane deployments)"
+fi
+
+echo ""
+
+# Test 7: Package.json scripts
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "7. Package.json Scripts"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ -f "package.json" ]; then
@@ -341,9 +380,9 @@ fi
 
 echo ""
 
-# Test 7: Environment variable consistency
+# Test 8: Environment variable consistency
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "7. Environment Variable Consistency"
+echo "8. Environment Variable Consistency"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check if all configs use consistent storage type
@@ -392,9 +431,9 @@ fi
 
 echo ""
 
-# Test 8: File structure validation
+# Test 9: File structure validation
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "8. File Structure Validation"
+echo "9. File Structure Validation"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check for required directories
@@ -427,10 +466,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if [ "$ALL_GOOD" = true ]; then
     echo -e "${GREEN}🎉 All configurations are valid!${NC}"
     echo ""
+    echo "✓ Hive database persistence is properly configured across all platforms"
+    echo ""
     echo "Your deployment setup is ready for:"
     echo "  • Railway.app: bun run deploy:railway"
     echo "  • Cloudflare Workers: bun run deploy:cloudflare"
     echo "  • Fly.io: flyctl deploy"
+    echo "  • Sliplane: See sliplane.yml configuration"
     echo "  • Docker: bun run docker:build && bun run docker:run"
 else
     echo -e "${RED}❌ Configuration validation failed${NC}"
