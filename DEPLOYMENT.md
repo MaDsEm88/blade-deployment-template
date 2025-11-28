@@ -149,6 +149,8 @@ flyctl deploy
 
 ## Sliplane (Container Hosting with Persistent Volumes)
 
+**📖 Full Guide**: See [SLIPLANE_VOLUMES.md](./SLIPLANE_VOLUMES.md) for comprehensive volume management, scaling, and troubleshooting.
+
 ### Setup
 
 1. **Create Sliplane Account**:
@@ -219,6 +221,14 @@ flyctl deploy
 - "Volume not found" → Create volume in Server Settings > Volumes first
 - Check logs → Via Sliplane Dashboard > Service > Logs
 - Database persists after restart → Verify volume is attached
+
+**Scaling Your Database**:
+- See [SLIPLANE_VOLUMES.md](./SLIPLANE_VOLUMES.md) for:
+  - Increasing volume size as data grows
+  - Migration to S3 for multi-region support
+  - Backup and restore procedures
+  - Sharing volumes between services
+  - Performance optimization tips
 
 ---
 
